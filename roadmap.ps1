@@ -1,17 +1,15 @@
 # Based on the downloader/creator in ff-efd53b.js, reworked for PowerShell
 
 $apiEndpoint = "https://www.microsoft.com/msonecloudapi/roadmap/features/"
-# $apiEndpoint = "/en-us/microsoft-365/roadmap/assets/test/mocks/features.json"
 
 try {
-    $response = Invoke-WebRequest -Uri $apiEndpoint # Comment this line
-    $content = $response.content.replace('\n', ' ') # and this one for testing
-    # $content = Get-Content .\data.json            # Uncomment this line for speedier testing purposes
-    $roadmapData = $content | ConvertFrom-Json -AsHashtable
 
+    $roadmapData = Invoke-RestMethod -Uri $apiEndpoint # Comment this line
 
 } catch {
+
     Write-Host "Unable to get Roadmap data from DOM: $_"
+
 }
 
 # Build the roadmap data, based on what the website provides as a CSV file
@@ -69,6 +67,9 @@ foreach ($r in $roadmapData) {
         Preview = $preview
         Release = $release
     }
+
 }
 
-$csvData | Export-Csv -Path .\roadmap.csv -NoTypeInformation
+$csvData | Export-Csv -Path .\roadmap.csv -NoTypeInformation # -Encoding unicode
+
+# ToDo: Fix this so that special characters are properly encoded
