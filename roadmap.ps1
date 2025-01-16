@@ -27,25 +27,33 @@ foreach ($r in $roadmapData) {
     foreach ($tag in $r.tagsContainer.products) {
         $tagsProduct += $tag.tagName + ", "
     }
-    $tagsProduct = $tagsProduct.TrimEnd(", ")
+    try {
+        $tagsProduct = $tagsProduct.TrimEnd(", ")
+    } catch { }
 
     $tagsReleasePhase = ""
     foreach ($tag in $r.tagsContainer.releasePhase) {
         $tagsReleasePhase += $tag.tagName + ", "
     }
-    $tagsReleasePhase = $tagsRelease.TrimEnd(", ")
+    try {
+        $tagsReleasePhase = $tagsRelease.TrimEnd(", ")
+    } catch { }
 
     $tagsPlatform = ""
     foreach ($tag in $r.tagsContainer.platforms) {
         $tagsPlatform += $tag.tagName + ", "
     }
-    $tagsPlatform = $releasePlatforms.TrimEnd(", ")
+    try {
+        $tagsPlatform = $releasePlatforms.TrimEnd(", ")
+    } catch { }
 
     $tagsCloudInstance = ""
     foreach ($tag in $r.tagsContainer.cloudInstances) {
         $tagsCloudInstance += $tag.tagName + ", "
     }
-    $tagsCloudInstance = $tagsCloudInstance.TrimEnd(", ")
+    try {
+        $tagsCloudInstance = $tagsCloudInstance.TrimEnd(", ")
+    } catch { }
 
     $addedToRoadmap = $r.created
     $lastModified = $r.modified
@@ -70,6 +78,7 @@ foreach ($r in $roadmapData) {
 
 }
 
-$csvData | Export-Csv -Path .\roadmap.csv -NoTypeInformation # -Encoding unicode
+$csvData | Export-Csv -Path .\roadmap.csv -NoTypeInformation -Encoding utf8BOM
 
 # ToDo: Fix this so that special characters are properly encoded
+$csvData | ConvertTo-Csv -NoTypeInformation |  select-string "security measures. We"
