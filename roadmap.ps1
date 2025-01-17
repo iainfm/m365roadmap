@@ -70,6 +70,6 @@ foreach ($r in $roadmapData) {
 
 }
 
-$csvData | Export-Csv -Path .\roadmap.csv -NoTypeInformation # -Encoding unicode
+$csvData | Export-Csv -Path .\roadmap.csv -NoTypeInformation -Encoding utf8BOM
 
 # ToDo: Fix this so that special characters are properly encoded
