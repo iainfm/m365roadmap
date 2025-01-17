@@ -44,7 +44,7 @@ foreach ($r in $roadmapData) {
         $tagsPlatform += $tag.tagName + ", "
     }
     try {
-        $tagsPlatform = $releasePlatforms.TrimEnd(", ")
+        $tagsPlatform = $releasePlatform.TrimEnd(", ")
     } catch { }
 
     $tagsCloudInstance = ""
