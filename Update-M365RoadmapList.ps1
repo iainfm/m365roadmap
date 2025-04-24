@@ -1,11 +1,12 @@
 # Powershell script to download the Microsoft 365 Roadmap items and populate/update a Sharepoint list with them.
 # Status is reported to a Teams channel.
-# Downloader is based on the downloader/creator in the ff-efd53b.js file used by Microsoft's web page.
+# Downloader is no longer based on the downloader/creator in the ff-efd53b.js file used by Microsoft's web page.
 # iainfm
 # Jan 2025
 
-# Requirements: Access to the certificate thumbprint, client ID, and tenant ID for the SharePoint site. PnP.PowerShell module installed
+# Updated April 2025 due to Microsoft providing a better way to directly download the CSV/JSON information from the website.
 
+# Requirements: Access to the certificate thumbprint, client ID, and tenant ID for the SharePoint site. PnP.PowerShell module installed
 
 # Variable definitions
 
@@ -21,7 +22,7 @@ $webhookUrl = '<webhook URL for Teams channel posting>'
 $webhookHeaders = @{ 'Content-Type' = 'application/json' }
 
 # Microsoft's API endpoint for the roadmap data
-$apiEndpoint = "https://www.microsoft.com/msonecloudapi/roadmap/features/"
+$apiEndpoint = "https://www.microsoft.com/releasecommunications/api/v2/m365?responseFormat=json"
 
 # Logs
 $transcriptPath = 'C:\Logs\M365Roadmap'
@@ -75,13 +76,19 @@ Start-Transcript -Path (Join-Path -Path $transcriptPath -ChildPath $transcriptNa
 try {
 
     # Download the roadmap data from the website
-    $roadmapData = Invoke-RestMethod -Uri $apiEndpoint # Comment this line
-
+    $roadmapData = (Invoke-RestMethod -Uri $apiEndpoint).Value
 } catch {
 
     Write-Host "Unable to get Roadmap data from DOM: $_"
     Exit 1
 
+}
+
+# Check we got data back
+if ($roadmapData.Count -eq 0) {
+    Write-Host "No data received from the API. Exiting."
+    Stop-Transcript
+    Exit 1
 }
 
 # Build the roadmap data, based on what the website provides as a CSV file
@@ -93,35 +100,35 @@ foreach ($r in $roadmapData) {
     $description = $r.title
     $details = $r.description
     $status = $r.status
-    $moreInfo = $r.moreInfoLink
+    $moreInfo = $r.moreInfoUrls[0] # Only take the first one in the array in case there are many.
 
     $tagsProduct = ""
-    foreach ($tag in $r.tagsContainer.products) {
-        $tagsProduct += $tag.tagName + ", "
+    foreach ($tag in $r.products) {
+        $tagsProduct += $tag + ", "
     }
     try {
         $tagsProduct = $tagsProduct.TrimEnd(", ")
     } catch { }
 
     $tagsReleasePhase = ""
-    foreach ($tag in $r.tagsContainer.releasePhase) {
-        $tagsReleasePhase += $tag.tagName + ", "
+    foreach ($tag in $r.releaseRings) {
+        $tagsReleasePhase += $tag + ", "
     }
     try {
         $tagsReleasePhase = $tagsReleasePhase.TrimEnd(", ")
     } catch { }
 
     $tagsPlatform = ""
-    foreach ($tag in $r.tagsContainer.platforms) {
-        $tagsPlatform += $tag.tagName + ", "
+    foreach ($tag in $r.platforms) {
+        $tagsPlatform += $tag + ", "
     }
     try {
         $tagsPlatform = $tagsPlatform.TrimEnd(", ")
     } catch { }
 
     $tagsCloudInstance = ""
-    foreach ($tag in $r.tagsContainer.cloudInstances) {
-        $tagsCloudInstance += $tag.tagName + ", "
+    foreach ($tag in $r.cloudInstances) {
+        $tagsCloudInstance += $tag + ", "
     }
     try {
         $tagsCloudInstance = $tagsCloudInstance.TrimEnd(", ")
@@ -129,8 +136,8 @@ foreach ($r in $roadmapData) {
 
     $addedToRoadmap = $r.created
     $lastModified = $r.modified
-    $preview = $r.publicPreviewDate
-    $release = $r.publicDisclosureAvailabilityDate
+    $preview = $r.previewAvailabilityDate
+    $release = $r.generalAvailabilityDate
 
     # This builds the data into a table using the same column names as the CSV file that Microsoft provides when the data is downloaded manually
     $jsonData += [PSCustomObject]@{
@@ -175,10 +182,10 @@ catch {
 # Details                 ->   field_2
 # Status                  ->   field_3
 # More Info               ->   field_4
-# "Tags - Product"        ->   field_5
-# "Tags - Release phase"  ->   field_6
-# "Tags - platform"       ->   field_7
-# "Tags - Cloud instance" ->   field_8
+# Products                ->   field_5
+# ReleasePhase            ->   field_6
+# Platforms               ->   field_7
+# CloudInstances          ->   field_8
 # "Added to Roadmap"      ->   field_9
 # "Last Modified"         ->   field_10
 # Preview                 ->   field_11
